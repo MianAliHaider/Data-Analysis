@@ -15,6 +15,7 @@ primary_language_encoder = joblib.load('Primary_language_encoder.pkl')
 category_encoder = joblib.load('Category_encoder.pkl')
 country_encoder = joblib.load('Country_encoder.pkl')
 
+
 # Function to display Introduction
 def introduction():
     st.title('Data Science Project: Predicting Youtube Subscribers 2024 (millions)')
@@ -110,6 +111,11 @@ def conclusion():
 
     The next steps would involve further model tuning and potential deployment for real-time predictions.
     """)
+
+import os
+st.write("Current Directory:", os.getcwd())
+st.write("Files in Directory:", os.listdir())
+
 
 # Main Streamlit app
 def main():
