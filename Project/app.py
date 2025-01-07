@@ -7,21 +7,28 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
+import os
 
-# Load the model and encoders
-model = joblib.load('model.pkl')
-brand_channel_encoder = joblib.load('Brand_channel_encoder.pkl')
-primary_language_encoder = joblib.load('Primary_language_encoder.pkl')
-category_encoder = joblib.load('Category_encoder.pkl')
-country_encoder = joblib.load('Country_encoder.pkl')
-
+# Load the model and encoders (error handling if files not found)
+def load_model_and_encoders():
+    try:
+        model = joblib.load('model.pkl')
+        brand_channel_encoder = joblib.load('Brand_channel_encoder.pkl')
+        primary_language_encoder = joblib.load('Primary_language_encoder.pkl')
+        category_encoder = joblib.load('Category_encoder.pkl')
+        country_encoder = joblib.load('Country_encoder.pkl')
+        return model, brand_channel_encoder, primary_language_encoder, category_encoder, country_encoder
+    except FileNotFoundError as e:
+        st.error(f"File not found: {e}")
+        return None, None, None, None, None
 
 # Function to display Introduction
 def introduction():
     st.title('Data Science Project: Predicting Youtube Subscribers 2024 (millions)')
     st.markdown("""
     ## Introduction
-    This project aims to predict the number of subscribers (in millions) for different channels on a platform. The dataset includes information such as the brand channel, primary language, category, country, and the number of subscribers. 
+    This project aims to predict the number of subscribers (in millions) for different channels on a platform. 
+    The dataset includes information such as the brand channel, primary language, category, country, and the number of subscribers. 
     The goal is to build a predictive model using a Random Forest Regressor to estimate the number of subscribers.
     """)
 
@@ -53,13 +60,13 @@ def eda(df):
     # Visualize the correlation heatmap
     fig, ax = plt.subplots()
     sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', ax=ax)
-    st.pyplot(fig)  # Pass the figure explicitly
+    st.pyplot(fig)
 
 # Function to prepare data and split into training and testing sets
 def prepare_data():
     # Load your dataset
     df = pd.read_csv('youtube_subscribers_data.csv')
-    
+
     # Encode categorical features
     label_encoder = LabelEncoder()
     df['Brand channel'] = label_encoder.fit_transform(df['Brand channel'])
@@ -77,7 +84,7 @@ def prepare_data():
     return X_train, X_test, y_train, y_test, df
 
 # Function to display Model Results
-def model_section(X_test, y_test):
+def model_section(model, X_test, y_test):
     st.title('Model Results')
     st.markdown("""
     ## Random Forest Regressor Model
@@ -112,11 +119,6 @@ def conclusion():
     The next steps would involve further model tuning and potential deployment for real-time predictions.
     """)
 
-import os
-st.write("Current Directory:", os.getcwd())
-st.write("Files in Directory:", os.listdir())
-
-
 # Main Streamlit app
 def main():
     st.sidebar.title("Navigation")
@@ -126,6 +128,11 @@ def main():
     # Load dataset
     df = pd.read_csv('youtube_subscribers_data.csv')
 
+    # Load model and encoders
+    model, brand_channel_encoder, primary_language_encoder, category_encoder, country_encoder = load_model_and_encoders()
+    if model is None:
+        return  # Exit if the model and encoders are not loaded correctly
+
     # Handle different sections based on user choice
     if choice == 'Introduction':
         introduction()
@@ -134,7 +141,7 @@ def main():
     elif choice == 'Model':
         # Prepare data and split it
         X_train, X_test, y_train, y_test, df = prepare_data()
-        model_section(X_test, y_test)  # Pass the test data to model section
+        model_section(model, X_test, y_test)  # Pass the test data to model section
     elif choice == 'Conclusion':
         conclusion()
 
