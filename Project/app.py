@@ -7,19 +7,25 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
-import os
 
 # Load the model and encoders (error handling if files not found)
 def load_model_and_encoders():
-    try:
-        model = joblib.load('model.pkl')
-        brand_channel_encoder = joblib.load('Brand_channel_encoder.pkl')
-        primary_language_encoder = joblib.load('Primary_language_encoder.pkl')
-        category_encoder = joblib.load('Category_encoder.pkl')
-        country_encoder = joblib.load('Country_encoder.pkl')
+    # Allow the user to upload model and encoder files
+    model_file = st.file_uploader("Upload Model", type=["pkl"])
+    brand_channel_encoder_file = st.file_uploader("Upload Brand Channel Encoder", type=["pkl"])
+    primary_language_encoder_file = st.file_uploader("Upload Primary Language Encoder", type=["pkl"])
+    category_encoder_file = st.file_uploader("Upload Category Encoder", type=["pkl"])
+    country_encoder_file = st.file_uploader("Upload Country Encoder", type=["pkl"])
+
+    if model_file and brand_channel_encoder_file and primary_language_encoder_file and category_encoder_file and country_encoder_file:
+        model = joblib.load(model_file)
+        brand_channel_encoder = joblib.load(brand_channel_encoder_file)
+        primary_language_encoder = joblib.load(primary_language_encoder_file)
+        category_encoder = joblib.load(category_encoder_file)
+        country_encoder = joblib.load(country_encoder_file)
         return model, brand_channel_encoder, primary_language_encoder, category_encoder, country_encoder
-    except FileNotFoundError as e:
-        st.error(f"File not found: {e}")
+    else:
+        st.error("Please upload all necessary files: Model and Encoders")
         return None, None, None, None, None
 
 # Function to display Introduction
@@ -64,24 +70,30 @@ def eda(df):
 
 # Function to prepare data and split into training and testing sets
 def prepare_data():
-    # Load your dataset
-    df = pd.read_csv('youtube_subscribers_data.csv')
+    # Allow the user to upload dataset CSV file
+    uploaded_file = st.file_uploader("Upload the dataset CSV", type=["csv"])
 
-    # Encode categorical features
-    label_encoder = LabelEncoder()
-    df['Brand channel'] = label_encoder.fit_transform(df['Brand channel'])
-    df['Primary language'] = label_encoder.fit_transform(df['Primary language'])
-    df['Category'] = label_encoder.fit_transform(df['Category'])
-    df['Country'] = label_encoder.fit_transform(df['Country'])
-    
-    # Split into features and target
-    X = df.drop(columns=['Subscribers (millions)', 'Name'])  # Drop 'Name' if it's just an identifier
-    y = df['Subscribers (millions)']
-    
-    # Split the data into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    return X_train, X_test, y_train, y_test, df
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+
+        # Encode categorical features
+        label_encoder = LabelEncoder()
+        df['Brand channel'] = label_encoder.fit_transform(df['Brand channel'])
+        df['Primary language'] = label_encoder.fit_transform(df['Primary language'])
+        df['Category'] = label_encoder.fit_transform(df['Category'])
+        df['Country'] = label_encoder.fit_transform(df['Country'])
+
+        # Split into features and target
+        X = df.drop(columns=['Subscribers (millions)', 'Name'])  # Drop 'Name' if it's just an identifier
+        y = df['Subscribers (millions)']
+
+        # Split the data into train and test sets
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        return X_train, X_test, y_train, y_test, df
+    else:
+        st.warning("Please upload the dataset CSV file to continue.")
+        return None, None, None, None, None
 
 # Function to display Model Results
 def model_section(model, X_test, y_test):
@@ -125,9 +137,6 @@ def main():
     options = ['Introduction', 'EDA', 'Model', 'Conclusion']
     choice = st.sidebar.radio("Select Section", options)
 
-    # Load dataset
-    df = pd.read_csv('youtube_subscribers_data.csv')
-
     # Load model and encoders
     model, brand_channel_encoder, primary_language_encoder, category_encoder, country_encoder = load_model_and_encoders()
     if model is None:
@@ -137,11 +146,15 @@ def main():
     if choice == 'Introduction':
         introduction()
     elif choice == 'EDA':
-        eda(df)
+        # Prepare data
+        _, _, _, _, df = prepare_data()
+        if df is not None:
+            eda(df)
     elif choice == 'Model':
         # Prepare data and split it
         X_train, X_test, y_train, y_test, df = prepare_data()
-        model_section(model, X_test, y_test)  # Pass the test data to model section
+        if X_train is not None:
+            model_section(model, X_test, y_test)  # Pass the test data to model section
     elif choice == 'Conclusion':
         conclusion()
 
